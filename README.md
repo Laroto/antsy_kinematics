@@ -1,0 +1,2 @@
+# Hexapod kinematics library
+
