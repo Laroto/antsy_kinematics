@@ -3,6 +3,9 @@
 #include "rclcpp/rclcpp.hpp"
 #include "kdl/frames.hpp"
 #include "kdl/jntarray.hpp"
+#include "std_msgs/msg/string.hpp"
+
+using namespace std::placeholders;
 
 class ExampleNode : public rclcpp::Node
 {
@@ -17,7 +20,17 @@ public:
     // extract chains and construct a solver for each
     antsy_kinematics::Kinematics kinematics(
       std::vector<std::string>{"foot_0", "foot_1", "foot_2"});
-    kinematics.spinUntilInitialized();
+    // forward robot_description to kinematics helper and wait for init
+    auto sub = this->create_subscription<std_msgs::msg::String>(
+      "robot_description",
+      rclcpp::QoS(rclcpp::KeepLast(1)).durability(RMW_QOS_POLICY_DURABILITY_TRANSIENT_LOCAL),
+      std::bind(&antsy_kinematics::Kinematics::robotDescriptionCallback, &kinematics, _1));
+    RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(), 5000,
+      "IK: Waiting until URDF received and solvers initialized.");
+    while (!kinematics.isInitialized()) {
+      rclcpp::spin_some(this->get_node_base_interface());
+      rclcpp::sleep_for(std::chrono::milliseconds(100));
+    }
 
     // Run the solver once
     KDL::JntArray q_init(3);
