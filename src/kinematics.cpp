@@ -136,10 +136,13 @@ void Kinematics::createSolvers()
     orientation_weight_, orientation_weight_, orientation_weight_;
 
   solvers_.clear();
+  fk_solvers_.clear();
   solvers_.reserve(feet_links_.size());
+  fk_solvers_.reserve(feet_links_.size());
   for (size_t i = 0; i < feet_links_.size(); i++) {
     // Create IK solver
     solvers_.emplace_back(std::cref(chains_[i]), task_weights, 1e-5, 100, 1e-15);
+    fk_solvers_.emplace_back(std::cref(chains_[i]));
   }
   solvers_set_ = true;
 }
@@ -154,6 +157,18 @@ int Kinematics::cartToJnt(
     return -1;
   }
   return solvers_[leg_index].CartToJnt(q_init, T_base_goal, q_out);
+}
+
+int Kinematics::jntToCart(
+  const size_t leg_index, const KDL::JntArray& q_in,
+  KDL::Frame& T_base_foot)
+{
+  if (!solvers_set_) {
+    RCLCPP_ERROR(rclcpp::get_logger("antsy_kinematics"),
+      "FK: Solvers not yet set, have to wait until initialized!");
+    return -1;
+  }
+  return fk_solvers_[leg_index].JntToCart(q_in, T_base_foot);
 }
 
 bool Kinematics::foldAndClampJointAnglesToLimits(

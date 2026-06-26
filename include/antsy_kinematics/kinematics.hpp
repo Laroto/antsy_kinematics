@@ -4,6 +4,7 @@
 #include "rclcpp/rclcpp.hpp"
 #include "urdf_parser/urdf_parser.h"
 #include "kdl/tree.hpp"
+#include "kdl/chainfksolverpos_recursive.hpp"
 #include "kdl/chainiksolverpos_lma.hpp"
 #include "std_msgs/msg/string.hpp"
 
@@ -23,6 +24,9 @@ public:
   int cartToJnt(
     const size_t leg_index, const KDL::JntArray& q_init,
     const KDL::Frame& T_base_goal, KDL::JntArray& q_out);
+  int jntToCart(
+    const size_t leg_index, const KDL::JntArray& q_in,
+    KDL::Frame& T_base_foot);
   bool foldAndClampJointAnglesToLimits(
     const size_t leg_index, KDL::JntArray & q);
   // check whether solvers have been initialized after robot_description
@@ -42,6 +46,7 @@ public:
   // TODO use smart pointers to handle chains and solvers?
   std::vector<KDL::Chain> chains_;
   std::vector<KDL::ChainIkSolverPos_LMA> solvers_;
+  std::vector<KDL::ChainFkSolverPos_recursive> fk_solvers_;
   std::vector<std::vector<urdf::JointLimits>> joint_limits_;
   bool solvers_set_ = false;
 };
